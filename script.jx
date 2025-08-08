@@ -1,0 +1,63 @@
+const classSelect = document.getElementById("classSelect");
+const quizDiv = document.getElementById("quiz");
+const studentImage = document.getElementById("studentImage");
+const optionsDiv = document.getElementById("options");
+const feedbackDiv = document.getElementById("feedback");
+
+// You will update this list manually as you add students
+const students = {
+  "1C": ["doe.john", "smith.jane", "white.sarah", "brown.ryan"],
+  "1V": ["..."],
+  "2C": ["..."],
+  "2V": ["..."]
+};
+
+classSelect.addEventListener("change", () => {
+  const selectedClass = classSelect.value;
+  if (selectedClass && students[selectedClass]) {
+    quizDiv.style.display = "block";
+    loadNewQuestion(selectedClass);
+  } else {
+    quizDiv.style.display = "none";
+  }
+});
+
+function loadNewQuestion(className) {
+  feedbackDiv.textContent = "";
+  const classList = students[className];
+  const correct = classList[Math.floor(Math.random() * classList.length)];
+
+  const [last, first] = correct.split(".");
+  studentImage.src = `images/${className}/${correct}.jpg`;
+
+  const options = [correct];
+  while (options.length < 4) {
+    const random = classList[Math.floor(Math.random() * classList.length)];
+    if (!options.includes(random)) {
+      options.push(random);
+    }
+  }
+
+  // Shuffle options
+  options.sort(() => Math.random() - 0.5);
+
+  optionsDiv.innerHTML = "";
+  options.forEach(opt => {
+    const [l, f] = opt.split(".");
+    const button = document.createElement("button");
+    button.textContent = `${capitalize(f)} ${capitalize(l)}`;
+    button.onclick = () => {
+      if (opt === correct) {
+        feedbackDiv.textContent = "✅ Correct!";
+      } else {
+        feedbackDiv.textContent = `❌ Nope. That was ${capitalize(first)} ${capitalize(last)}.`;
+      }
+      setTimeout(() => loadNewQuestion(className), 1500);
+    };
+    optionsDiv.appendChild(button);
+  });
+}
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
