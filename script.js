@@ -1,20 +1,30 @@
+let studentsByClass = {};
 const classSelect = document.getElementById("classSelect");
 const quizDiv = document.getElementById("quiz");
 const studentImage = document.getElementById("studentImage");
 const optionsDiv = document.getElementById("options");
 const feedbackDiv = document.getElementById("feedback");
 
-// You will update this list manually as you add students
-const students = {
-  "1C": ["doe.john", "smith.jane", "white.sarah", "brown.ryan"],
-  "1V": ["..."],
-  "2C": ["..."],
-  "2V": ["..."]
-};
+fetch("students.json")
+  .then(res => res.json())
+  .then(data => {
+    studentsByClass = data;
+    populateClassDropdown(Object.keys(data));
+  });
+
+function populateClassDropdown(classes) {
+  classSelect.innerHTML = '<option value="">-- Select a class --</option>';
+  classes.sort().forEach(cls => {
+    const option = document.createElement("option");
+    option.value = cls;
+    option.textContent = cls;
+    classSelect.appendChild(option);
+  });
+}
 
 classSelect.addEventListener("change", () => {
   const selectedClass = classSelect.value;
-  if (selectedClass && students[selectedClass]) {
+  if (selectedClass && studentsByClass[selectedClass]) {
     quizDiv.style.display = "block";
     loadNewQuestion(selectedClass);
   } else {
@@ -24,24 +34,23 @@ classSelect.addEventListener("change", () => {
 
 function loadNewQuestion(className) {
   feedbackDiv.textContent = "";
-  const classList = students[className];
+  const classList = studentsByClass[className];
   const correct = classList[Math.floor(Math.random() * classList.length)];
 
   const [last, first] = correct.split(".");
   studentImage.src = `images/${className}/${correct}.jpg`;
 
   const options = [correct];
-  while (options.length < 4) {
+  while (options.length < 4 && options.length < classList.length) {
     const random = classList[Math.floor(Math.random() * classList.length)];
     if (!options.includes(random)) {
       options.push(random);
     }
   }
 
-  // Shuffle options
   options.sort(() => Math.random() - 0.5);
-
   optionsDiv.innerHTML = "";
+
   options.forEach(opt => {
     const [l, f] = opt.split(".");
     const button = document.createElement("button");
