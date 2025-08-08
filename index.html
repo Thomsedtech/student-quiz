@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Quiz</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Student Photo Quiz</h1>
+  <label for="classSelect">Choose a class:</label>
+  <select id="classSelect">
+    <option value="">-- Select a class --</option>
+    <option value="1C">1C</option>
+    <option value="1V">1V</option>
+    <option value="2C">2C</option>
+    <option value="2V">2V</option>
+  </select>
+
+  <div id="quiz" style="display:none;">
+    <img id="studentImage" src="" alt="Student photo" />
+    <div id="options"></div>
+    <div id="feedback"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
