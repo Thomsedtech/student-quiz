@@ -38,7 +38,9 @@ function loadNewQuestion(className) {
   const correct = classList[Math.floor(Math.random() * classList.length)];
 
   const [last, first] = correct.split(".");
-  studentImage.src = `images/${className}/${correct}.jpg`;
+  studentImage.src = `images/${className.toLowerCase()}/${correct}.jpg`;
+
+
 
   const options = [correct];
   while (options.length < 4 && options.length < classList.length) {
