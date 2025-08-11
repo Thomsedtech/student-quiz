@@ -1,7 +1,7 @@
 import os, json, re
 
 IMAGE_ROOT = "images"
-VALID_EXTS = {".jpg", ".jpeg", ".png"}
+VALID_EXTS = {".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"}
 
 def natural_key(s):
     return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", s)]
@@ -13,20 +13,19 @@ for class_folder in os.listdir(IMAGE_ROOT):
     if not os.path.isdir(class_path):
         continue
 
-    label = class_folder                 # e.g. "5C" (for display)
-    class_key = class_folder.lower()     # e.g. "5c" (for paths)
-
+    label = class_folder              # e.g., "5C" (display + folder fallback)
+    key = class_folder.lower()        # e.g., "5c" (lowercase path key)
     files = []
+
     for fname in os.listdir(class_path):
         base, ext = os.path.splitext(fname)
-        if ext.lower() in VALID_EXTS:
-            files.append((base.lower() + ext.lower()))  # keep full filename
+        if ext in VALID_EXTS:
+            files.append(fname)       # 👈 keep EXACT filename (case preserved)
 
     if files:
-        data[class_key] = {
-            "label": label,
-            "files": sorted(files)  # e.g. ["doe.john.jpg", "smith.jane.png"]
-        }
+        # Sort case-insensitively for stable order, but keep original case
+        files = sorted(files, key=str.lower)
+        data[key] = {"label": label, "files": files}
 
 ordered = dict(sorted(data.items(), key=lambda kv: natural_key(kv[1]["label"])))
 with open("students.json", "w", encoding="utf-8") as f:
