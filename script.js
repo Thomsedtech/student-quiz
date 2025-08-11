@@ -5,10 +5,10 @@ const studentImage = document.getElementById("studentImage");
 const optionsDiv = document.getElementById("options");
 const feedbackDiv = document.getElementById("feedback");
 
-fetch("students.json")
+fetch("students.json?bust=" + Date.now())
   .then(r => r.json())
   .then(data => {
-    studentsByClass = data; // { "5c": { label:"5C", files:["doe.john.jpg", ...] }, ... }
+    studentsByClass = data; // { "5c": {label:"5C", files:["doe.john.jpg", ...]}, ... }
     populateClassDropdown(Object.entries(data));
   })
   .catch(err => {
@@ -20,24 +20,26 @@ function populateClassDropdown(entries) {
   classSelect.innerHTML = '<option value="">-- Select a class --</option>';
   entries.forEach(([key, val]) => {
     const option = document.createElement("option");
-    option.value = key;            // lowercase key used for paths
-    option.textContent = val.label; // visible label (e.g., "5C")
+    option.value = key;              // lowercase key used in paths
+    option.textContent = val.label;  // show original label (e.g., "5C")
     classSelect.appendChild(option);
   });
 }
 
 classSelect.addEventListener("change", () => {
-  const key = classSelect.value;
-  if (key && studentsByClass[key]) {
-    loadNewQuestion(key);
-  } else {
+  const classKey = classSelect.value;
+  if (!classKey || !studentsByClass[classKey]) {
     quizDiv.style.display = "none";
+    return;
   }
+  loadNewQuestion(classKey);
 });
 
 function loadNewQuestion(classKey) {
   const classInfo = studentsByClass[classKey];
-  if (!classInfo || !classInfo.files || classInfo.files.length === 0) {
+  console.log("Selected class:", classKey, classInfo);
+
+  if (!classInfo || !Array.isArray(classInfo.files) || classInfo.files.length === 0) {
     quizDiv.style.display = "none";
     alert(`No photos found for class ${classInfo ? classInfo.label : classKey}.`);
     return;
@@ -46,15 +48,40 @@ function loadNewQuestion(classKey) {
   quizDiv.style.display = "block";
   feedbackDiv.textContent = "";
 
-  const list = classInfo.files; // array of full filenames: "doe.john.jpg"
+  const list = classInfo.files; // array of full filenames WITH extension
   const correctFile = list[Math.floor(Math.random() * list.length)];
-  const stem = correctFile.replace(/\.(jpg|jpeg|png)$/i, ""); // "doe.john"
-  const [last, first] = stem.split(".");
+  if (!correctFile) {
+    console.warn("No correctFile picked; list was:", list);
+    quizDiv.style.display = "none";
+    alert(`No valid images for ${classInfo.label}.`);
+    return;
+  }
 
-  // Use the filename with extension exactly as in students.json
-  studentImage.src = `images/${classKey}/${correctFile}`;
+  const stem = correctFile.replace(/\.(jpg|jpeg|png)$/i, ""); // "lastname.firstname"
+  const parts = stem.split(".");
+  if (parts.length < 2) {
+    console.warn("Filename not in lastname.firstname.* format:", correctFile);
+  }
+  const [last = "", first = ""] = parts;
 
-  // Build answer options from stems (names), not from filenames
+  // Build primary (lowercase folder) and fallback (original label) paths
+  const primarySrc = `images/${classKey}/${correctFile}`;        // uses lowercase key
+  const fallbackSrc = `images/${classInfo.label}/${correctFile}`; // uses label as-is
+
+  // Try lowercase path first; if 404, retry with label-cased folder name
+  studentImage.onerror = () => {
+    if (studentImage.src.endsWith(encodeURI(primarySrc))) {
+      console.warn("Primary image 404, trying fallback:", fallbackSrc);
+      studentImage.src = fallbackSrc + "?bust=" + Date.now();
+    } else {
+      console.error("Both primary and fallback paths failed:", primarySrc, fallbackSrc);
+      feedbackDiv.textContent = "⚠️ Image not found.";
+    }
+  };
+  studentImage.src = primarySrc + "?bust=" + Date.now();
+  console.log("Trying image:", primarySrc, "→ fallback:", fallbackSrc);
+
+  // Build answer options (names only)
   const stems = list.map(fn => fn.replace(/\.(jpg|jpeg|png)$/i, ""));
   const optionsSet = new Set([stem]);
   while (optionsSet.size < Math.min(4, stems.length)) {
@@ -64,7 +91,7 @@ function loadNewQuestion(classKey) {
 
   optionsDiv.innerHTML = "";
   options.forEach(optStem => {
-    const [l, f] = optStem.split(".");
+    const [l = "", f = ""] = optStem.split(".");
     const btn = document.createElement("button");
     btn.textContent = `${capitalize(f)} ${capitalize(l)}`;
     btn.onclick = () => {
@@ -79,4 +106,4 @@ function loadNewQuestion(classKey) {
   });
 }
 
-function capitalize(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
+function capitalize(s){ return s ? s[0].toUpperCase() + s.slice(1) : s; }
