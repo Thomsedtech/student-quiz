@@ -6,69 +6,77 @@ const optionsDiv = document.getElementById("options");
 const feedbackDiv = document.getElementById("feedback");
 
 fetch("students.json")
-  .then(res => res.json())
+  .then(r => r.json())
   .then(data => {
-    studentsByClass = data;
-    populateClassDropdown(Object.keys(data));
+    studentsByClass = data; // { "5c": { label:"5C", files:["doe.john.jpg", ...] }, ... }
+    populateClassDropdown(Object.entries(data));
+  })
+  .catch(err => {
+    console.error("Failed to load students.json", err);
+    classSelect.innerHTML = '<option value="">(Failed to load classes)</option>';
   });
 
-function populateClassDropdown(classes) {
+function populateClassDropdown(entries) {
   classSelect.innerHTML = '<option value="">-- Select a class --</option>';
-  classes.sort().forEach(cls => {
+  entries.forEach(([key, val]) => {
     const option = document.createElement("option");
-    option.value = cls;
-    option.textContent = cls;
+    option.value = key;            // lowercase key used for paths
+    option.textContent = val.label; // visible label (e.g., "5C")
     classSelect.appendChild(option);
   });
 }
 
 classSelect.addEventListener("change", () => {
-  const selectedClass = classSelect.value;
-  if (selectedClass && studentsByClass[selectedClass]) {
-    quizDiv.style.display = "block";
-    loadNewQuestion(selectedClass);
+  const key = classSelect.value;
+  if (key && studentsByClass[key]) {
+    loadNewQuestion(key);
   } else {
     quizDiv.style.display = "none";
   }
 });
 
-function loadNewQuestion(className) {
-  feedbackDiv.textContent = "";
-  const classList = studentsByClass[className];
-  const correct = classList[Math.floor(Math.random() * classList.length)];
-
-  const [last, first] = correct.split(".");
-  studentImage.src = `images/${className.toLowerCase()}/${correct}.jpg`;
-
-
-
-  const options = [correct];
-  while (options.length < 4 && options.length < classList.length) {
-    const random = classList[Math.floor(Math.random() * classList.length)];
-    if (!options.includes(random)) {
-      options.push(random);
-    }
+function loadNewQuestion(classKey) {
+  const classInfo = studentsByClass[classKey];
+  if (!classInfo || !classInfo.files || classInfo.files.length === 0) {
+    quizDiv.style.display = "none";
+    alert(`No photos found for class ${classInfo ? classInfo.label : classKey}.`);
+    return;
   }
 
-  options.sort(() => Math.random() - 0.5);
-  optionsDiv.innerHTML = "";
+  quizDiv.style.display = "block";
+  feedbackDiv.textContent = "";
 
-  options.forEach(opt => {
-    const [l, f] = opt.split(".");
-    const button = document.createElement("button");
-    button.textContent = `${capitalize(f)} ${capitalize(l)}`;
-    button.onclick = () => {
-      if (opt === correct) {
+  const list = classInfo.files; // array of full filenames: "doe.john.jpg"
+  const correctFile = list[Math.floor(Math.random() * list.length)];
+  const stem = correctFile.replace(/\.(jpg|jpeg|png)$/i, ""); // "doe.john"
+  const [last, first] = stem.split(".");
+
+  // Use the filename with extension exactly as in students.json
+  studentImage.src = `images/${classKey}/${correctFile}`;
+
+  // Build answer options from stems (names), not from filenames
+  const stems = list.map(fn => fn.replace(/\.(jpg|jpeg|png)$/i, ""));
+  const optionsSet = new Set([stem]);
+  while (optionsSet.size < Math.min(4, stems.length)) {
+    optionsSet.add(stems[Math.floor(Math.random() * stems.length)]);
+  }
+  const options = Array.from(optionsSet).sort(() => Math.random() - 0.5);
+
+  optionsDiv.innerHTML = "";
+  options.forEach(optStem => {
+    const [l, f] = optStem.split(".");
+    const btn = document.createElement("button");
+    btn.textContent = `${capitalize(f)} ${capitalize(l)}`;
+    btn.onclick = () => {
+      if (optStem === stem) {
         feedbackDiv.textContent = "✅ Correct!";
       } else {
         feedbackDiv.textContent = `❌ Nope. That was ${capitalize(first)} ${capitalize(last)}.`;
       }
-      setTimeout(() => loadNewQuestion(className), 1500);
+      setTimeout(() => loadNewQuestion(classKey), 1200);
     };
-    optionsDiv.appendChild(button);
+    optionsDiv.appendChild(btn);
   });
 }
 
-function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
+function capitalize(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
