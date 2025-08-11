@@ -12,19 +12,20 @@ for class_folder in os.listdir(IMAGE_ROOT):
     class_path = os.path.join(IMAGE_ROOT, class_folder)
     if not os.path.isdir(class_path):
         continue
-    label = class_folder  # e.g. "5C"
-    class_key = class_folder.lower()
 
-    students = []
+    label = class_folder                 # e.g. "5C" (for display)
+    class_key = class_folder.lower()     # e.g. "5c" (for paths)
+
+    files = []
     for fname in os.listdir(class_path):
         base, ext = os.path.splitext(fname)
         if ext.lower() in VALID_EXTS:
-            students.append(base.lower())
+            files.append((base.lower() + ext.lower()))  # keep full filename
 
-    if students:
+    if files:
         data[class_key] = {
             "label": label,
-            "files": sorted(students)
+            "files": sorted(files)  # e.g. ["doe.john.jpg", "smith.jane.png"]
         }
 
 ordered = dict(sorted(data.items(), key=lambda kv: natural_key(kv[1]["label"])))
